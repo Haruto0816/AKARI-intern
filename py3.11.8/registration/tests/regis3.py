@@ -116,10 +116,9 @@ target_points = load_data(target_path)
 tree = build_kdtree(target_points)
 
 # 対応点ペアを生成
-num = 10000 # 選ぶ数
+num = 3 # 選ぶ数
 indices = np.random.choice(source_points.shape[0], num, replace = False)
-#query_points = source_points[indices]
-query_points = source_points[0:10001]
+query_points = source_points[indices]
 # query_points = source_points
 
 
@@ -130,11 +129,9 @@ sum_nearest = np.zeros(( target_points.shape[1])) #探索した最近傍点の�
 
 
 nearest_points = np.zeros(( query_points.shape[0], query_points.shape[1]))
-prev_rmse = 0.5
 
 for k in range(10):
-    # # ターゲット点群のKD-treeを構築
-    # tree = build_kdtree(target_points)
+
     
     for index, query_point in enumerate(query_points):
         nearest_point = find_nearest(tree, query_point)
@@ -159,9 +156,10 @@ for k in range(10):
     covar = np.zeros( (3, 3) )
     n_points = query_points.shape[0]
     for i in range(n_points):
-        covar += np.dot( query_points[i].reshape(-1, 1), nearest_points[i].reshape(1, -1) )
+        p = query_points[i] - mu_s
+        y = nearest_points[i] - mu_y
+        covar += np.outer(p, y)
     covar /= n_points
-    covar -= np.dot( mu_s.reshape(-1, 1), mu_y.reshape(1, -1) )
     # print(covar)
 
 
@@ -202,9 +200,5 @@ for k in range(10):
     rmse = np.sqrt(np.mean(distances**2))
     # print(distances)
     print("RMSE:", rmse)
-    # # 収束判定
-    # if np.abs(prev_rmse - rmse) < tolerance:
-    #     break
-    # prev_rmse = rmse
 
     query_points = transformed_points

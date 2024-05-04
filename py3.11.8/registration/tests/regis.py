@@ -116,7 +116,7 @@ target_points = load_data(target_path)
 tree = build_kdtree(target_points)
 
 # 対応点ペアを生成
-num = 10000 # 選ぶ数
+num = 3 # 選ぶ数
 indices = np.random.choice(source_points.shape[0], num, replace = False)
 query_points = source_points[indices]
 # query_points = source_points
