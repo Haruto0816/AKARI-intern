@@ -132,12 +132,7 @@ nearest_points = np.zeros(( query_points.shape[0], query_points.shape[1]))
 
 for k in range(10):
 
-    
-    for index, query_point in enumerate(query_points):
-        nearest_point = find_nearest(tree, query_point)
-        sets[index] = np.array([query_point, nearest_point])
-
-        nearest_points[index, :] = nearest_point
+    nearest_points = np.array([find_nearest(tree, qp) for qp in query_points])
 
     # 重心の計算
     mu_s = np.mean( query_points, axis=0 ) #クエリ点（ソース点群）の重心

@@ -54,32 +54,71 @@ source_points = load_data('workspace1.txt')
 target_points = load_data('workspace2.txt')
 tree = build_kdtree(target_points)
 
-num = 100
+num = 2000
 indices = np.random.choice(source_points.shape[0], num, replace=False)
 query_points = source_points[indices]
 
-for k in range(100):
+for k in range(30):
     nearest_points = np.array([find_nearest(tree, qp) for qp in query_points])
 
     mu_s = np.mean(query_points, axis=0)
     mu_y = np.mean(nearest_points, axis=0)
-    #covar = np.sum([np.outer((qp - mu_s), (np - mu_y)) for qp, np in zip(query_points, nearest_points)], axis=0) / num
-    covar = np.sum([np.outer((qp - mu_s), (n_p - mu_y)) for qp, n_p in zip(query_points, nearest_points)], axis=0) / num
 
-    delta = np.array([covar[1, 2] - covar[2, 1], covar[2, 0] - covar[0, 2], covar[0, 1] - covar[1, 0]])
+    #covar = np.sum([np.outer((qp - mu_s), (n_p - mu_y)) for qp, n_p in zip(query_points, nearest_points)], axis=0) / num
+    # 共分散行列
+    covar = np.zeros( (3, 3) )
+    n_points = query_points.shape[0]
+    for i in range(n_points):
+        p = query_points[i] - mu_s
+        y = nearest_points[i] - mu_y
+        covar += np.outer(p, y)
+    covar /= n_points
+
+    # delta = np.array([covar[1, 2] - covar[2, 1], covar[2, 0] - covar[0, 2], covar[0, 1] - covar[1, 0]])
+    # tr_covar = np.trace(covar)
+    # Q = np.zeros((4, 4))
+    # Q[0, 0] = tr_covar
+    # Q[0, 1:4] = Q[1:4, 0] = delta
+    # Q[1:4, 1:4] = covar + covar.T - np.eye(3) * tr_covar
+    # _, v = np.linalg.eig(Q)
+    # rot = quaternion2rotation(v[:, np.argmax(np.real(_))])
+
+    A = covar - covar.T
+    delta = np.array( [A[1, 2], A[2, 0], A[0, 1]] )
     tr_covar = np.trace(covar)
-    Q = np.zeros((4, 4))
-    Q[0, 0] = tr_covar
-    Q[0, 1:4] = Q[1:4, 0] = delta
-    Q[1:4, 1:4] = covar + covar.T - np.eye(3) * tr_covar
-    _, v = np.linalg.eig(Q)
-    rot = quaternion2rotation(v[:, np.argmax(np.real(_))])
+    i3d = np.identity(3)
 
-    trans = mu_y - rot @ mu_s
-    transform = np.eye(4)
-    transform[:3, :3] = rot
-    transform[:3, 3] = trans
+    N_py = np.zeros( (4, 4) )
+    N_py[0, 0] = tr_covar
+    N_py[0, 1:4] = delta
+    N_py[1:4, 0] = delta
+    N_py[1:4, 1:4] = covar + covar.T - tr_covar*i3d
+    # print(N_py)
+
+    # 固有値・固有ベクトル
+    w, v = LA.eig(N_py)
+    rot = quaternion2rotation(v[:, np.argmax(w)])
+
+    # trans = mu_y - rot @ mu_s
+    # transform = np.eye(4)
+    # transform[:3, :3] = rot
+    # transform[:3, 3] = trans
+
+    # 平行移動成分
+    trans = mu_y - np.dot(rot, mu_s)
+
+    # 4x4同次変換行列
+    transform = np.identity(4)
+    transform[0:3, 0:3] = rot.copy()
+    transform[0:3, 3] = trans.copy()
 
     query_points = (transform @ np.hstack((query_points, np.ones((query_points.shape[0], 1)))).T).T[:, :3]
-    rmse = np.sqrt(np.mean(np.sum((nearest_points - query_points)**2, axis=1)))
+    # rmse = np.sqrt(np.mean(np.sum((nearest_points - query_points)**2, axis=1)))
+
+    # query_points2 = np.hstack( ( query_points, np.ones( ( query_points.shape[0], 1 ) ) ) )
+    # transformed_points = np.dot( query_points2, transform )[:, :3]
+    # query_points = transformed_points
+
+    distances = np.linalg.norm( nearest_points - query_points, axis=1 )
+    rmse = np.sqrt(np.mean(distances**2))
     print(f"RMSE: {rmse}")
