@@ -129,11 +129,10 @@ sum_nearest = np.zeros(( target_points.shape[1])) #探索した最近傍点の�
 
 
 nearest_points = np.zeros(( query_points.shape[0], query_points.shape[1]))
-prev_rmse = 0.5
 
 for k in range(10):
-    # # ターゲット点群のKD-treeを構築
-    # tree = build_kdtree(target_points)
+    # ターゲット点群のKD-treeを構築
+    tree = build_kdtree(target_points)
     
     for index, query_point in enumerate(query_points):
         nearest_point = find_nearest(tree, query_point)
@@ -201,9 +200,5 @@ for k in range(10):
     rmse = np.sqrt(np.mean(distances**2))
     # print(distances)
     print("RMSE:", rmse)
-    # 収束判定
-    if np.abs(prev_rmse - rmse) < tolerance:
-        break
-    prev_rmse = rmse
 
     query_points = transformed_points
