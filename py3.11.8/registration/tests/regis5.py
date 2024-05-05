@@ -1,5 +1,7 @@
 import numpy as np
 import numpy.linalg as LA
+import matplotlib.pyplot as plt
+
 
 class KDNode:
     def __init__(self, point, left=None, right=None):
@@ -54,11 +56,13 @@ source_points = load_data('workspace1.txt')
 target_points = load_data('workspace2.txt')
 tree = build_kdtree(target_points)
 
-num = 2000
+num = 60000
 indices = np.random.choice(source_points.shape[0], num, replace=False)
 query_points = source_points[indices]
 
-for k in range(30):
+RMSE = []
+
+for k in range(20):
     nearest_points = np.array([find_nearest(tree, qp) for qp in query_points])
 
     mu_s = np.mean(query_points, axis=0)
@@ -121,4 +125,9 @@ for k in range(30):
 
     distances = np.linalg.norm( nearest_points - query_points, axis=1 )
     rmse = np.sqrt(np.mean(distances**2))
+    RMSE.append((k, rmse))
     print(f"RMSE: {rmse}")
+
+x, y = zip(*RMSE)
+plt.plot(x, y)
+plt.savefig('myplot.png')
